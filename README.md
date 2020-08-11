@@ -1,2 +1,2 @@
-# Light_and_textures
-Este proyecto permite observar distintos tipos de luces (ambiente, difusa y especular), con la posibilidad de modificar la intensidad de luz, coeficiente de brillantez e incluso la posición del foco. 
+# Light and textures
+Este proyecto permite observar distintos tipos de luces (ambiente, difusa y especular), con la posibilidad de modificar la intensidad de luz, coeficiente de brillantez e incluso la posición del foco. Además de permitir aplicar distintas texturas sobre la figura (un cubo rodeado por 6 esferas), también soporta la rotación en todos los ejes, tanto manual mediante el ratón como de forma automática.
