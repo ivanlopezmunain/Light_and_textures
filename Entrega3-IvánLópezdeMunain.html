@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  
+  <title>Práctica 3 - Iván López de Munain Quintana</title>
+  <style>
+        
+    body{ background-color: rgb(231, 252, 138); }
+    canvas{ background-color: white;
+              border: 1px solid black; }
+
+        
+		#luces_contribuciones{ 
+      border-radius: 10px;
+      width: 400px;
+      height: 140px;
+      border:1px solid black;
+      background-color: white; 
+      position:absolute; 
+      top:225px; 
+      left:550px;
+      padding: 10px;
+    }
+    .slider {
+      -webkit-appearance: none;
+      width: 300px;
+      height: 12px;
+      border-radius: 5px;
+      background: #d3d3d3;
+      opacity: 1; 
+      -webkit-transition: .2s;
+      transition: opacity .2s;
+    }
+
+
+
+		#luces_coordenadas{ 
+      width: 400px;
+      height: 140px; 
+      background-color: white; 
+      position:absolute; 
+      top:490px; 
+      left:550px;
+      border:1px solid black; 
+       border-radius: 10px;
+       padding: 10px;
+    }
+
+
+    #valor_brillantez{ 
+       width: 400px;
+       height: 65px; 
+       background-color: white; 
+       position:absolute;
+       border:1px solid black; 
+       border-radius: 10px;
+       top:395px; 
+       left:550px;
+       padding: 10px;
+       }
+
+		#checkboxes{ 
+      width: 400px; 
+      height: 70px; 
+      background-color: white; 
+      position:absolute; 
+      top:125px; 
+      left:550px;
+      border:1px solid black; 
+      border-radius: 10px;
+      padding: 10px;
+      }
+
+      
+		#checkboxesText{ 
+      width: 400px; 
+      height: 70px; 
+      background-color: white; 
+      position:absolute; 
+      top:25px; 
+      left:550px;
+      border:1px solid black; 
+      border-radius: 10px;
+      padding: 10px;
+      }
+
+      #checkboxesRotacion{ 
+      width: 300px; 
+      height: 20px; 
+      background-color: white; 
+      position:absolute; 
+      top:590px; 
+      left:10px;
+      border:1px solid black; 
+      border-radius: 10px;
+      padding: 10px;
+      }
+
+      #colores{
+        width: 150px; 
+        height: 20px;  
+        background-color: white; 
+        border:1px solid black;
+        border-radius: 10px; 
+        padding: 10px;
+        top:590px; 
+        left:345px;
+        position: absolute;
+      }
+		
+		
+
+      
+
+</style>
+  
+   <!-- ****************   VERTEX SHADER *******************-->
+  <script id="vertex-shader" type="x-shader/x-vertex">
+
+    attribute vec3 a_position;      
+    attribute vec3 a_normal;      
+    attribute vec2 aTexCoord;     
+  
+    uniform mat4 uMvMatrix;
+    uniform vec2 a_boolMixtext;
+    uniform vec3 a_colorAleatorio;
+    uniform vec3 posicion_Luz;  
+    uniform vec3 ambienteCoef;
+    uniform vec3 difusoCoef;
+    uniform vec3 especularCoef;
+    uniform float brillantez;  
+    uniform vec3 colLuzTexturas;
+              
+    varying vec2 vTexCoord;
+    varying highp vec2 bool_mixtext;
+    varying vec3 colorAleatorio;
+    varying vec3 ambiente;
+    varying vec3 difuso;
+    varying vec3 especular;
+    varying vec3 norm;
+    varying vec4 pos;
+    varying vec3 posLuz;
+    varying vec2 brill;
+    varying vec3 v_colLuzTexturas;
+
+
+
+
+    void main() {   
+        
+        vec3 normal = mat3(uMvMatrix)*normalize(a_normal);  
+        norm = normal;        
+        gl_Position = uMvMatrix*vec4(a_position, 1.0);  
+        pos = gl_Position;
+
+        //luces
+        posLuz = posicion_Luz;  
+        ambiente = ambienteCoef;
+        difuso = difusoCoef;
+        especular = especularCoef;
+        brill = vec2(brillantez,0);
+
+        //texturas
+        vTexCoord = aTexCoord;
+        bool_mixtext = a_boolMixtext; 
+        colorAleatorio = a_colorAleatorio;
+        v_colLuzTexturas = colLuzTexturas;
+                 
+      }
+  
+ </script>
+
+  <!-- ****************   FRAGMENT SHADER *******************-->
+  <script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+    varying vec2 vTexCoord;
+    varying vec3 colorAleatorio;
+    varying highp vec2 bool_mixtext;
+    varying vec3 ambiente;
+    varying vec3 difuso;
+    varying vec3 especular;
+    varying vec3 norm;
+    varying vec4 pos;
+    varying vec3 posLuz;
+    varying vec2 brill;
+    varying vec3 v_colLuzTexturas;
+    uniform sampler2D uTexture; 
+    
+
+    void main() {  
+
+
+      //modelo de phong: cuatro vectores (normal:vector normal, v: vector al observador, l: vector direccion luz, r: vector reflexion)
+      //los normalizamos
+      vec3 v = normalize(vec3(0,0,1)- pos.xyz);      
+      vec3 l = normalize(posLuz - pos.xyz );
+      vec3 r = reflect(-l, norm);                             
+
+      //luz ambiente          
+      vec3 ambient = ambiente;
+
+      //luz difusa
+      float cos_angle1 = max(dot(l,norm),0.0);
+      vec3 dif = cos_angle1*difuso; 
+
+      //luz especular
+      float cos_angle2 = max(dot(r, v),0.0); 
+      vec3 esp = especular * pow(cos_angle2, brill[0]);
+
+      //calculo de la intensidad de phong
+      vec4 IntensPhong = vec4(ambient + dif + esp, 1); 
+      
+      //los if no son muy eficientes en el fragment, pero asi consigo un color por defecto sin textura y el efecto "discoteca"
+      vec4 colorFinal = vec4(0.0);
+        
+      if(1.0==bool_mixtext[0]){
+        
+        //con textura y un determinado color de luz
+        colorFinal = texture2D(uTexture, vTexCoord)*vec4(v_colLuzTexturas,1);
+
+      }else{
+
+        //sin textura
+        colorFinal  =  vec4(colorAleatorio,1)  ;
+        
+      }
+
+      gl_FragColor = IntensPhong  * colorFinal  ;
+    }
+  </script>
+
+  <script  type="text/javascript" src="./Librerias/d3.v4.min.js"></script>
+  <script type="text/javascript" src="./Librerias/gl-matrix-min.js"></script>
+  <script type="text/javascript" src="./Librerias/gl-matrix.js"></script>
+  <script type="text/javascript" src="./Librerias/GLMatrix.js"></script>
+  
+  
+
+  <!--**************** FUNCIONES JAVASCRIPT ****************-->
+  <script type="text/javascript" src="Entrega3-IvánLópezdeMunain.js"></script>
+
+  </head>
+  <body id="body" onload="initWebGL()">   
+    <h1> Práctica 3 - Iván López de Munain </h1> 
+           
+    <canvas id="canvas" width="500" height="500" ></canvas>
+            
+    <div id="luces_contribuciones" > 	
+        <p>Contribuciones de intensidad:</p>
+  				 <input type="range" min="0" max="1"  class="slider" id="sliderLA" step="0.01" oninput="sliderContLA()" >
+           La: <span id="demo1"></span>
+        <hr>
+    			 <input type="range" min="0" max="1"  class="slider" id="sliderLD" step="0.01" oninput="sliderContLD()" >
+           Ld: <span id="demo2"></span>
+        <hr>
+   				<input type="range" min="0" max="1"  class="slider" id="sliderLS" step="0.01" oninput="sliderContLS()">
+           Ls: <span id="demo3"></span>
+        </div>
+		<div id="luces_coordenadas">
+        <p>Seleccione las coordenadas de la luz:</p>	
+  			  <input type="range" min="-1" max="1" class="slider" id="sliderX" step="0.1" oninput="sliderX()">
+          X: <span id="demo5"></span>
+        <hr>
+    			<input type="range" min="-1" max="1"  class="slider" id="sliderY" step="0.1" oninput="sliderY()">
+          Y: <span id="demo6"></span>
+        <hr>
+   				<input type="range" min="-1" max="1"  class="slider" id="sliderZ" step="0.1" oninput="sliderZ()">
+           Z: <span id="demo7"></span>
+     </div>
+		  <div id="valor_brillantez">	
+          <p>Coeficiente de brillantez:</p>
+  				 <input type="range" min="0.1" max="1"  class="slider" id="sliderBrillantez" step="0.01" oninput="sliderCoefBrillo()">
+            Alpha: <span id="demo4"></span>
+      </div>
+		 <div id="checkboxes">
+          <p>Seleccione el tipo de luz:</p>
+                <input type="checkbox" id="checkboxAmbiente"  onchange="checkbox_Ambiente()" > Luz ambiente
+                <input type="checkbox" id="checkboxDifusa"  onchange="checkbox_Difusa()" > Luz difusa 
+                <input type="checkbox" id="checkboxEspecular" onchange="checkbox_Especular()"> Luz especular
+       </div>
+
+       <div id="checkboxesText">
+          <p>Seleccione el tipo de material:</p>
+                <input type="checkbox" id="checkboxMix"  onchange="checkbox_Mix()" > Mix 
+                <input type="checkbox" id="checkboxAcero"  onchange="checkbox_Acero()" > Acero
+                <input type="checkbox" id="checkboxDibujos" onchange="checkbox_Dibujos()"> B&W
+                <input type="checkbox" id="checkboxCarpeta" onchange="checkbox_Carpeta()"> Carpeta
+                <input type="checkbox" id="checkboxDiscoteca" onchange="checkbox_Discoteca()"> Discoteca
+       </div>
+       <div id="checkboxesRotacion">
+       
+              <input type="checkbox" id="rotacionX" onchange="checkbox_rotacionX()"> RotaciónX
+              <input type="checkbox" id="rotacionY" onchange="checkbox_rotacionY()"> RotaciónY
+              <input type="checkbox" id="rotacionZ" onchange="checkbox_rotacionZ()"> RotaciónZ
+     </div>
+     <div id="colores" class="container">
+      <input id="selectorCol" type="color"  value="#ffffff"> Luz texturas
+    </div>
+  </body>
+</html>
